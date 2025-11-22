@@ -1,5 +1,5 @@
 {
-  "name": "Giochi dei Numeri",
+  "name": "Malika",
   "short_name": "Malika",
   "start_url": "./index.html",
   "scope": "./",
@@ -25,4 +25,5 @@
     }
   ]
 }
+
 
