@@ -1,5 +1,5 @@
 {
-  "name": "Malika",
+  "name": "MALIKA",
   "short_name": "Malika",
   "start_url": "./index.html",
   "scope": "./",
@@ -25,5 +25,3 @@
     }
   ]
 }
-
-
