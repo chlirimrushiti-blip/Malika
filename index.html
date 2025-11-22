@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Giochi dei Numeri</title>
+<link rel="manifest" href="manifest.json">
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js");
+  }
+</script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html,body{margin:0;padding:0;height:100%;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at top,#0f172a,#020617);color:#f9fafb;}
+    body{display:flex;justify-content:center;align-items:stretch;}
+    .app{width:100%;max-width:900px;min-height:100vh;display:flex;flex-direction:column;padding:10px;gap:10px;}
+    header{text-align:center;padding:8px 10px;}
+    header h1{margin:0;font-size:1.8rem;}
+    header p{margin:4px 0 0;font-size:1rem;opacity:0.9;}
+    .panel{background:rgba(15,23,42,0.95);border-radius:18px;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,0.4);display:flex;flex-direction:column;gap:8px;}
+    .row{display:flex;flex-wrap:wrap;gap:8px;}
+    #gameSelector{width:100%;}
+    .btn-game{flex:1 1 calc(50% - 8px);min-width:140px;padding:12px 14px;border-radius:18px;border:none;font-size:1rem;font-weight:700;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#f9fafb;box-shadow:0 6px 14px rgba(15,23,42,0.7);cursor:pointer;transition:transform 0.1s,box-shadow 0.1s,filter 0.1s;text-align:center;white-space:nowrap;}
+    .btn-game:nth-child(2n){background:linear-gradient(135deg,#f97316,#ea580c);}
+    .btn-game:nth-child(3n){background:linear-gradient(135deg,#22c55e,#16a34a);}
+    .btn-game:nth-child(4n){background:linear-gradient(135deg,#a855f7,#7c3aed);}
+    .btn-game:nth-child(5n){background:linear-gradient(135deg,#06b6d4,#0ea5e9);}
+    .btn-game.active{filter:brightness(1.15);box-shadow:0 0 0 2px #facc15,0 8px 20px rgba(234,179,8,0.9);}
+    .btn-game:active{transform:scale(0.96);box-shadow:0 3px 8px rgba(15,23,42,0.7);}
+    .btn-diff{flex:1 1 30%;padding:10px;border-radius:999px;border:none;font-size:0.95rem;font-weight:700;background:#0f172a;color:#e5e7eb;cursor:pointer;box-shadow:0 4px 10px rgba(15,23,42,0.7);transition:transform 0.1s,box-shadow 0.1s,background 0.1s;text-align:center;}
+    .btn-diff[data-diff="easy"].active{background:#22c55e;color:#022c22;box-shadow:0 0 0 2px #bbf7d0,0 8px 20px rgba(22,163,74,0.9);}
+    .btn-diff[data-diff="medium"].active{background:#f97316;color:#451a03;box-shadow:0 0 0 2px #fed7aa,0 8px 20px rgba(248,113,113,0.9);}
+    .btn-diff[data-diff="hard"].active{background:#ef4444;color:#450a0a;box-shadow:0 0 0 2px #fecaca,0 8px 20px rgba(239,68,68,0.9);}
+    .btn-diff:active{transform:scale(0.96);box-shadow:0 3px 8px rgba(15,23,42,0.7);}
+    .status-bar{display:flex;justify-content:space-between;align-items:center;font-size:0.9rem;padding:6px 10px;border-radius:999px;background:rgba(15,23,42,0.95);border:1px solid rgba(148,163,184,0.5);gap:4px;flex-wrap:wrap;}
+    .status-bar span{white-space:nowrap;}
+    .status-bar button{padding:5px 12px;border-radius:999px;border:none;font-size:0.85rem;font-weight:700;background:linear-gradient(135deg,#e11d48,#be123c);color:#f9fafb;cursor:pointer;box-shadow:0 4px 10px rgba(15,23,42,0.7);}
+    .status-bar button:active{transform:scale(0.96);}
+    #gameArea{flex:1 1 auto;min-height:0;display:flex;align-items:stretch;justify-content:center;padding:10px;}
+    .game-card{width:100%;max-width:750px;min-height:260px;background:radial-gradient(circle at top left,#1f2937,#020617);border-radius:22px;padding:16px;box-shadow:0 10px 32px rgba(0,0,0,0.7);display:flex;flex-direction:column;justify-content:space-between;gap:10px;}
+    .game-question{text-align:center;font-size:1.6rem;font-weight:800;margin-bottom:2px;}
+    .game-subtitle{text-align:center;font-size:1.2rem;opacity:0.9;}
+    .objects-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;margin-top:8px;padding:6px;}
+    .object-item{width:36px;height:36px;border-radius:12px;background:radial-gradient(circle at top,#22c55e,#15803d);display:flex;align-items:center;justify-content:center;font-size:1.3rem;box-shadow:0 4px 12px rgba(34,197,94,0.7);}
+    .number-line{display:flex;justify-content:center;gap:6px;margin-top:10px;flex-wrap:wrap;}
+    .number-slot{min-width:34px;min-height:34px;padding:8px;border-radius:10px;border:1px dashed rgba(148,163,184,0.9);display:flex;align-items:center;justify-content:center;font-size:1.05rem;background:rgba(15,23,42,0.95);}
+    .number-slot.missing{background:rgba(248,113,113,0.18);border-style:solid;}
+    .answers{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px;}
+    .btn-answer{flex:1 1 45%;max-width:48%;min-height:58px;border-radius:18px;border:none;font-size:1.6rem;font-weight:800;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#f9fafb;box-shadow:0 6px 18px rgba(15,23,42,0.8);cursor:pointer;transition:transform 0.1s,box-shadow 0.1s,filter 0.1s;}
+    .btn-answer:active{transform:scale(0.96);box-shadow:0 3px 8px rgba(15,23,42,0.8);}
+    .btn-answer.correct{background:linear-gradient(135deg,#22c55e,#16a34a)!important;}
+    .btn-answer.wrong{background:linear-gradient(135deg,#ef4444,#b91c1c)!important;}
+    .tap-area{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px;padding:6px;}
+    .tap-item{width:48px;height:48px;border-radius:16px;background:radial-gradient(circle at top,#06b6d4,#0e7490);display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 6px 18px rgba(8,47,73,0.9);cursor:pointer;transition:transform 0.1s,opacity 0.1s;}
+    .tap-item:active{transform:scale(0.9);opacity:0.7;}
+    .feedback{text-align:center;font-size:1.4rem;margin-top:4px;min-height:1.6em;opacity:0.95;}
+    .draw-wrapper{display:flex;flex-direction:column;gap:8px;margin-top:8px;flex:1 1 auto;}
+    .draw-canvas-container{flex:1 1 auto;border-radius:16px;border:2px solid rgba(148,163,184,0.6);overflow:hidden;background:#020617;}
+    #drawCanvas{width:100%;height:260px;display:block;touch-action:none;background:#020617;}
+    .draw-controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+    .draw-btn{flex:1 1 30%;min-width:120px;padding:8px 10px;border-radius:999px;border:none;font-size:0.95rem;font-weight:700;background:linear-gradient(135deg,#facc15,#eab308);color:#1f2937;box-shadow:0 4px 12px rgba(15,23,42,0.8);cursor:pointer;}
+    .draw-btn.alt{background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:#022c22;}
+    .draw-btn.danger{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fee2e2;}
+    .draw-btn:active{transform:scale(0.96);box-shadow:0 3px 8px rgba(15,23,42,0.8);}
+    .count-display{font-size:3rem;text-align:center;margin-top:10px;}
+    .count-controls{display:flex;justify-content:center;gap:10px;margin-top:10px;}
+    .count-btn{flex:0 0 auto;min-width:80px;min-height:60px;border-radius:999px;border:none;font-size:2rem;font-weight:800;background:linear-gradient(135deg,#22c55e,#16a34a);color:#022c22;box-shadow:0 6px 18px rgba(15,23,42,0.8);cursor:pointer;}
+    .count-btn:active{transform:scale(0.96);}
+    .big-number{
+      font-size:3rem;
+      text-align:center;
+      margin-top:6px;
+      font-weight:800;
+      color:#facc15;
+      text-shadow:0 0 10px rgba(250,204,21,0.8);
+    }
+    @media (min-width:700px){
+      header h1{font-size:2rem;}
+      .btn-game{flex:1 1 calc(25% - 8px);min-height:60px;font-size:1.05rem;}
+      .btn-diff{font-size:1rem;}
+      .btn-answer{min-height:64px;font-size:1.8rem;}
+      .object-item{width:42px;height:42px;font-size:1.45rem;}
+      .tap-item{width:54px;height:54px;font-size:1.5rem;}
+      #drawCanvas{height:320px;}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Giochi dei Numeri</h1>
+    <p>(Numeri, colori, emoji e la tua voce 🎧🔢)</p>
+  </header>
+
+  <div class="panel">
+    <div class="row" id="gameSelector">
+      <button class="btn-game" data-game="countObjects">Conta oggetti</button>
+      <button class="btn-game" data-game="sumObjects">Somma con oggetti</button>
+      <button class="btn-game" data-game="biggerNumber">Numero più grande</button>
+      <button class="btn-game" data-game="matchQuantity">Numero = quantità</button>
+      <button class="btn-game" data-game="numberLine">Numero mancante</button>
+      <button class="btn-game" data-game="fastSum">Somma veloce</button>
+      <button class="btn-game" data-game="tapCount">Conta e tocca</button>
+      <button class="btn-game" data-game="drawGame">Disegna</button>
+      <button class="btn-game" data-game="countWithMe">Conta con me</button>
+    </div>
+
+    <div class="row" id="difficultySelector">
+      <button class="btn-diff" data-diff="easy">Facile (fino a 10)</button>
+      <button class="btn-diff" data-diff="medium">Medio (fino a 20)</button>
+      <button class="btn-diff" data-diff="hard">Difficile (fino a 30)</button>
+    </div>
+
+    <div class="status-bar">
+      <span id="statusGame">Gioco: -</span>
+      <span id="statusLevel">Livello: 1 / 10</span>
+      <span id="statusDiff">Diff: -</span>
+      <button id="btnRestart">Reset gioco</button>
+    </div>
+  </div>
+
+  <div id="gameArea"></div>
+</div>
+
+<script>
+  // --- AUDIO SETUP ---
+  const audioCache = {};
+
+  const audioMap = {
+    intro_countObjects: "audio/intro_countObjects.mp3",
+    intro_sumObjects: "audio/intro_sumObjects.mp3",
+    intro_biggerNumber: "audio/intro_biggerNumber.mp3",
+    intro_matchQuantity: "audio/intro_matchQuantity.mp3",
+    intro_numberLine: "audio/intro_numberLine.mp3",
+    intro_fastSum: "audio/intro_fastSum.mp3",
+    intro_tapCount: "audio/intro_tapCount.mp3",
+    intro_drawGame: "audio/intro_drawGame.mp3",
+    intro_countWithMe: "audio/intro_countWithMe.mp3",      // generico
+    intro_countWithMe_10: "audio/intro_countWithMe_10.mp3", // specifici
+    intro_countWithMe_20: "audio/intro_countWithMe_20.mp3",
+    intro_countWithMe_30: "audio/intro_countWithMe_30.mp3",
+    ok_correct: "audio/ok_correct.mp3",
+    try_again: "audio/try_again.mp3",
+    game_complete: "audio/game_complete.mp3"
+  };
+
+  function getAudioPath(key){
+    if(key.startsWith("num_")){
+      const n = key.split("_")[1];
+      return "audio/num_" + n + ".mp3";
+    }
+    return audioMap[key] || null;
+  }
+
+  function playSound(key){
+    const path = getAudioPath(key);
+    if(!path) return;
+    let audio = audioCache[key];
+    if(!audio){
+      audio = new Audio(path);
+      audioCache[key] = audio;
+    }
+    try{
+      audio.currentTime = 0;
+      audio.play();
+    }catch(e){
+      // il browser può bloccare se non c'è interazione, pazienza
+    }
+  }
+
+  // --- GIOCHI / DIFFICOLTA ---
+
+  const gameNames = {
+    countObjects:"Conta oggetti",
+    sumObjects:"Somma con oggetti",
+    biggerNumber:"Numero più grande",
+    matchQuantity:"Numero = quantità",
+    numberLine:"Numero mancante",
+    fastSum:"Somma veloce",
+    tapCount:"Conta e tocca",
+    drawGame:"Disegna",
+    countWithMe:"Conta con me"
+  };
+
+  const difficultySettings = {
+    easy:{maxNumber:10,maxSum:10,label:"Facile",countTo:10},
+    medium:{maxNumber:20,maxSum:20,label:"Medio",countTo:20},
+    hard:{maxNumber:30,maxSum:30,label:"Difficile",countTo:30}
+  };
+
+  const emojiSets = {
+    fruits:["🍎","🍌","🍓","🍇","🍉","🍊","🍐","🍒","🍋"],
+    stars:["⭐","🌟","✨","💫"],
+    shapes:["🔴","🔵","🟢","🟣","🟡","🟥","🟦","🟩"],
+    animals:["🐶","🐱","🐭","🐹","🐰","🐻","🐼","🐸","🐵"],
+    toys:["🚗","🚕","🏎️","🚙","🧸","⚽","🏀","🪀"]
+  };
+
+  function randomFromArray(arr){return arr[Math.floor(Math.random()*arr.length)];}
+  function getRandomEmoji(){const keys=Object.keys(emojiSets);const key=randomFromArray(keys);return randomFromArray(emojiSets[key]);}
+
+  let currentGame=null;
+  let currentDiff=null;
+  let currentLevel=1;
+  const maxLevel=10;
+
+  const statusGame=document.getElementById("statusGame");
+  const statusLevel=document.getElementById("statusLevel");
+  const statusDiff=document.getElementById("statusDiff");
+  const gameArea=document.getElementById("gameArea");
+  const gameButtons=document.querySelectorAll(".btn-game");
+  const diffButtons=document.querySelectorAll(".btn-diff");
+
+  document.getElementById("btnRestart").addEventListener("click",()=>{
+    if(!currentGame||!currentDiff)return;
+    currentLevel=1;
+    updateStatus();
+    loadGame();
+  });
+
+  gameButtons.forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      gameButtons.forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      currentGame=btn.dataset.game;
+      currentLevel=1;
+      updateStatus();
+      if(currentDiff)loadGame();
+    });
+  });
+
+  diffButtons.forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      diffButtons.forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      currentDiff=btn.dataset.diff;
+      updateStatus();
+      if(currentGame){
+        currentLevel=1;
+        loadGame();
+      }
+    });
+  });
+
+  function updateStatus(){
+    statusGame.textContent="Gioco: "+(currentGame?gameNames[currentGame]:"-");
+    statusLevel.textContent="Livello: "+currentLevel+" / "+maxLevel;
+    statusDiff.textContent="Diff: "+(currentDiff?difficultySettings[currentDiff].label:"-");
+  }
+
+  function loadGame(){
+    const cfg=difficultySettings[currentDiff];
+    gameArea.innerHTML="";
+
+    switch(currentGame){
+      case "countObjects":renderCountObjects(cfg);break;
+      case "sumObjects":renderSumObjects(cfg);break;
+      case "biggerNumber":renderBiggerNumber(cfg);break;
+      case "matchQuantity":renderMatchQuantity(cfg);break;
+      case "numberLine":renderNumberLine(cfg);break;
+      case "fastSum":renderFastSum(cfg);break;
+      case "tapCount":renderTapCount(cfg);break;
+      case "drawGame":renderDrawGame(cfg);break;
+      case "countWithMe":renderCountWithMe(cfg);break;
+    }
+  }
+
+  function nextLevel(){
+    if(currentGame==="drawGame") return;
+    if(currentLevel<maxLevel){
+      currentLevel++;
+      updateStatus();
+      loadGame();
+    }else{
+      playSound("game_complete");
+      showCompleted();
+    }
+  }
+
+  function showCompleted(){
+    gameArea.innerHTML="";
+    const card=document.createElement("div");
+    card.className="game-card";
+    card.innerHTML=`
+      <div class="game-question">🎉✨</div>
+      <div class="game-subtitle">⭐ ⭐ ⭐</div>
+      <div class="answers">
+        <button class="btn-answer" id="btnReplay">🔁</button>
+      </div>
+    `;
+    gameArea.appendChild(card);
+    document.getElementById("btnReplay").addEventListener("click",()=>{
+      currentLevel=1;
+      updateStatus();
+      loadGame();
+    });
+  }
+
+  function shuffleArray(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  function createFeedback(){
+    const span=document.createElement("div");
+    span.className="feedback";
+    span.textContent=" ";
+    return span;
+  }
+
+  // --- GIOCO 1: CONTA OGGETTI ---
+  function renderCountObjects(cfg){
+    playSound("intro_countObjects");
+
+    const max=cfg.maxNumber;
+    const n=Math.floor(Math.random()*max)+1;
+    const emoji=getRandomEmoji();
+
+    const correct=n;
+    const options=new Set([correct]);
+    while(options.size<3){
+      let delta=Math.floor(Math.random()*3)+1;
+      let candidate=correct+(Math.random()<0.5?-delta:delta);
+      if(candidate<1)candidate=1;
+      if(candidate>max+3)candidate=max+3;
+      options.add(candidate);
+    }
+    const answers=shuffleArray([...options]);
+
+    const card=document.createElement("div");
+    card.className="game-card";
+
+    const q=document.createElement("div");
+    q.className="game-question";
+    q.textContent="👀 ➕ 🔢";
+
+    const sub=document.createElement("div");
+    sub.className="game-subtitle";
+    sub.textContent="";
+
+    const objs=document.createElement("div");
+    objs.className="objects-row";
+    for(let i=0;i<n;i++){
+      const el=document.createElement("div");
+      el.className="object-item";
+      el.textContent=emoji;
+      objs.appendChild(el);
+    }
+
+    const ans=document.createElement("div");
+    ans.className="answers";
+    const feedback=createFeedback();
+
+    answers.forEach(val=>{
+      const btn=document.createElement("button");
+      btn.className="btn-answer";
+      btn.textContent=val;
+      btn.addEventListener("click",()=>{
+        if(val===correct){
+          btn.classList.add("correct");
+          feedback.textContent="✅ 😀";
+          playSound("num_"+val);
+setTimeout(()=>playSound("ok_correct"),1000);
+setTimeout(nextLevel,1900);
+
+        }else{
+          btn.classList.add("wrong");
+          feedback.textContent="❌ 🙂";
+          playSound("try_again");
+        }
+      });
+      ans.appendChild(btn);
+    });
+
+    card.appendChild(q);
+    card.appendChild(sub);
+    card.appendChild(objs);
+    card.appendChild(ans);
+    card.appendChild(feedback);
+    gameArea.appendChild(card);
+  }
+
+  // --- GIOCO 2: SOMMA CON OGGETTI ---
+  function renderSumObjects(cfg){
+    playSound("intro_sumObjects");
+
+    const max=cfg.maxSum;
+    const a=Math.floor(Math.random()*Math.max(2,Math.floor(max/2)))+1;
+    const b=Math.floor(Math.random()*Math.max(2,Math.floor(max/2)))+1;
+    const correct=a+b;
+
+    const emoji1=getRandomEmoji();
+    let emoji2=getRandomEmoji();
+    if(emoji2===emoji1)emoji2=getRandomEmoji();
+
+    const options=new Set([correct]);
+    while(options.size<3){
+      let delta=Math.floor(Math.random()*3)+1;
+      let candidate=correct+(Math.random()<0.5?-delta:delta);
+      if(candidate<1)candidate=1;
+      if(candidate>max+3)candidate=max+3;
+      options.add(candidate);
+    }
+    const answers=shuffleArray([...options]);
+
+    const card=document.createElement("div");
+    card.className="game-card";
+
+    const q=document.createElement("div");
+    q.className="game-question";
+    q.textContent="➕ 🔢";
+
+    const sub=document.createElement("div");
+    sub.className="game-subtitle";
+    sub.textContent="";
+
+    const objs=document.createElement("div");
+    objs.className="objects-row";
+
+    for(let i=0;i<a;i++){
+      const el=document.createElement("div");
+      el.className="object-item";
+      el.textContent=emoji1;
+      objs.appendChild(el);
+    }
+    const plus=document.createElement("div");
+    plus.style.fontSize="1.6rem";
+    plus.style.margin="0 8px";
+    plus.textContent="+";
+    objs.appendChild(plus);
+    for(let i=0;i<b;i++){
+      const el=document.createElement("div");
+      el.className="object-item";
+      el.textContent=emoji2;
+      objs.appendChild(el);
+    }
+
+    const ans=document.createElement("div");
+    ans.className="answers";
+    const feedback=createFeedback();
+
+    answers.forEach(val=>{
+      const btn=document.createElement("button");
+      btn.className="btn-answer";
+      btn.textContent=val;
+      btn.addEventListener("click",()=>{
+        if(val===correct){
+          btn.classList.add("correct");
+          feedback.textContent="✅ 😀";
+          playSound("num_"+val);
+          setTimeout(()=>playSound("ok_correct"),500);
+          setTimeout(nextLevel,1100);
+        }else{
+          btn.classList.add("wrong");
+          feedback.textContent="❌ 🙂";
+          playSound("try_again");
+        }
+      });
+      ans.appendChild(btn);
+    });
+
+    card.appendChild(q);
+    card.appendChild(sub);
+    card.appendChild(objs);
+    card.appendChild(ans);
+    card.appendChild(feedback);
+    gameArea.appendChild(card);
+  }
+
+  // --- GIOCO 3: NUMERO PIÙ GRANDE ---
+  function renderBiggerNumber(cfg){
+    playSound("intro_biggerNumber");
+
+    let a,b;
+    do{
+      a=Math.floor(Math.random()*cfg.maxNumber)+1;
+      b=Math.floor(Math.random()*cfg.maxNumber)+1;
+    }while(a===b);
+    const correct=Math.max(a,b);
+
+    const card=document.createElement("div");
+    card.className="game-card";
+
+    const q=document.createElement("div");
+    q.className="game-question";
+    q.textContent="🔝 🔢";
+
+    const sub=document.createElement("div");
+    sub.className="game-subtitle";
+    sub.textContent="";
+
+    const ans=document.createElement("div");
+    ans.className="answers";
+    const feedback=createFeedback();
+
+    [a,b].forEach(val=>{
+      const btn=document.createElement("button");
+      btn.className="btn-answer";
+      btn.textContent=val;
+      btn.addEventListener("click",()=>{
+        if(val===correct){
+          btn.classList.add("correct");
+          feedback.textContent="✅ 😀";
+          playSound("num_"+val);
+          setTimeout(()=>playSound("ok_correct"),500);
+          setTimeout(nextLevel,1100);
+        }else{
+          btn.classList.add("wrong");
+          feedback.textContent="❌ 🙂";
+          playSound("try_again");
+        }
+      });
+      ans.appendChild(btn);
+    });
+
+    card.appendChild(q);
+    card.appendChild(sub);
+    card.appendChild(ans);
+    card.appendChild(feedback);
+    gameArea.appendChild(card);
+  }
+
+  // --- GIOCO 4: NUMERO = QUANTITÀ ---
+  function renderMatchQuantity(cfg){
+    playSound("intro_matchQuantity");
+
+    const max=cfg.maxNumber;
+    const n=Math.floor(Math.random()*max)+1;
+    const emoji=getRandomEmoji();
+
+    const card=document.createElement("div");
+    card.className="game-card";
+
+    const q=document.createElement("div");
+    q.className="game-question";
+    q.textContent="= 🔢";
+
+    const sub=document.createElement("div");
+    sub.className="game-subtitle";
+    sub.textContent="";
+
+    const objs=document.createElement("div");
+    objs.className="objects-row";
+    for(let i=0;i<n;i++){
+      const el=document.createElement("div");
+      el.className="object-item";
+      el.textContent=emoji;
+      objs.appendChild(el);
+    }
+
+    const options=new Set([n]);
+    while(options.size<3){
+      let delta=Math.floor(Math.random()*3)+1;
+      let candidate=n+(Math.random()<0.5?-delta:delta);
+      if(candidate<1)candidate=1;
+      if(candidate>max+3)candidate=max+3;
+      options.add(candidate);
+    }
+    const answers=shuffleArray([...options]);
+
+    const ans=document.createElement("div");
+    ans.className="answers";
+    const feedback=createFeedback();
+
+    answers.forEach(val=>{
+      const btn=document.createElement("button");
+      btn.className="btn-answer";
+      btn.textContent=val;
+      btn.addEventListener("click",()=>{
+        if(val===n){
+          btn.classList.add("correct");
+          feedback.textContent="✅ 😀";
+          playSound("num_"+val);
+          setTimeout(()=>playSound("ok_correct"),500);
+          setTimeout(nextLevel,1100);
+        }else{
+          btn.classList.add("wrong");
+          feedback.textContent="❌ 🙂";
+          playSound("try_again");
+        }
+      });
+      ans.appendChild(btn);
+    });
+
+    card.appendChild(q);
+    card.appendChild(sub);
+    card.appendChild(objs);
+    card.appendChild(ans);
+    card.appendChild(feedback);
+    gameArea.appendChild(card);
+  }
+
+  // --- GIOCO 5: NUMERO MANCANTE ---
+  function renderNumberLine(cfg){
+    playSound("intro_numberLine");
+
+    const length=5;
+    const start=1;
+    const step=1;
+    const line=[];
+    for(let i=0;i<length;i++){line.push(start+i*step);}
+    const missingIndex=Math.floor(Math.random()*length);
+    const correct=line[missingIndex];
+
+    const candidates=new Set([correct]);
+    while(candidates.size<3){
+      const rand=correct+(Math.random()<0.5?-1:1)*(Math.floor(Math.random()*3)+1);
+      if(rand>0)candidates.add(rand);
+    }
+    const answers=shuffleArray([...candidates]);
+
+    const card=document.createElement("div");
+    card.className="game-card";
+
+    const q=document.createElement("div");
+    q.className="game-question";
+    q.textContent="❓🔢";
+
+    const sub=document.createElement("div");
+    sub.className="game-subtitle";
+    sub.textContent="";
+
+    const lineDiv=document.createElement("div");
+    lineDiv.className="number-line";
+
+    line.forEach((num,idx)=>{
+      const slot=document.createElement("div");
+      slot.className="number-slot"+(idx===missingIndex?" missing":"");
+      slot.textContent=idx===missingIndex?"?":num;
+      lineDiv.appendChild(slot);
+    });
+
+    const ans=document.createElement("div");
+    ans.className="answers";
+    const feedback=createFeedback();
+
+    answers.forEach(val=>{
+      const btn=document.createElement("button");
+      btn.className="btn-answer";
+      btn.textContent=val;
+      btn.addEventListener("click",()=>{
+        if(val===correct){
+          btn.classList.add("correct");
+          feedback.textContent="✅ 😀";
+          playSound("num_"+val);
+          setTimeout(()=>playSound("ok_correct"),500);
+          setTimeout(nextLevel,1100);
+        }else{
+          btn.classList.add("wrong");
+          feedback.textContent="❌ 🙂";
+          playSound("try_again");
+        }
+      });
+      ans.appendChild(btn);
+    });
+
+    card.appendChild(q);
+    card.appendChild(sub);
+    card.appendChild(lineDiv);
+    card.appendChild(ans);
+    card.appendChild(feedback);
+    gameArea.appendChild(card);
+  }
+
+  // --- GIOCO 6: SOMMA VELOCE ---
+  function renderFastSum(cfg){
+    playSound("intro_fastSum");
+
+    const max=cfg.maxSum;
+    // a + b <= max (così in facile non supera 10)
+    const a = Math.floor(Math.random()*(max-1))+1; // 1..max-1
+    const b = Math.floor(Math.random()*(max - a))+1; // 1..(max-a)
+    const correct=a+b;
+
+    const options=new Set([correct]);
+    while(options.size<3){
+      let delta=Math.floor(Math.random()*4)+1;
+      let candidate=correct+(Math.random()<0.5?-delta:delta);
+      if(candidate<1)candidate=1;
+      if(candidate>max)candidate=max;
+      options.add(candidate);
+    }
+    const answers=shuffleArray([...options]);
+
+    const card=document.createElement("div");
+    card.className="game-card";
+
+    const q=document.createElement("div");
+    q.className="game-question";
+    q.textContent="🔢➕🔢";
+
+    const sub=document.createElement("div");
+    sub.className="game-subtitle";
+    sub.textContent="";
+
+    const ans=document.createElement("div");
+    ans.className="answers";
+    const feedback=createFeedback();
+
+    const questionTop=document.createElement("div");
+    questionTop.className="game-subtitle";
+    questionTop.style.fontSize="1.5rem";
+    questionTop.textContent = a + " + " + b + " = ?";
+
+    card.appendChild(q);
+    card.appendChild(questionTop);
+
+    answers.forEach(val=>{
+      const btn=document.createElement("button");
+      btn.className="btn-answer";
+      btn.textContent=val;
+      btn.addEventListener("click",()=>{
+        if(val===correct){
+          btn.classList.add("correct");
+          feedback.textContent="✅ 😀";
+          playSound("num_"+val);
+          setTimeout(()=>playSound("ok_correct"),500);
+          setTimeout(nextLevel,1100);
+        }else{
+          btn.classList.add("wrong");
+          feedback.textContent="❌ 🙂";
+          playSound("try_again");
+        }
+      });
+      ans.appendChild(btn);
+    });
+
+    card.appendChild(ans);
+    card.appendChild(feedback);
+    gameArea.appendChild(card);
+  }
+
+  // --- GIOCO 7: CONTA E TOCCA ---
+  function renderTapCount(cfg){
+    playSound("intro_tapCount");
+
+    const max=cfg.maxNumber;
+    const n=Math.floor(Math.random()*max)+1;
+    const emoji=getRandomEmoji();
+    let count=0;
+
+    const card=document.createElement("div");
+    card.className="game-card";
+
+    const q=document.createElement("div");
+    q.className="game-question";
+    q.textContent="👆👆👆";
+
+    const sub=document.createElement("div");
+    sub.className="game-subtitle";
+    sub.textContent="";
+
+    const tapArea=document.createElement("div");
+    tapArea.className="tap-area";
+
+    for(let i=0;i<n;i++){
+      const item=document.createElement("div");
+      item.className="tap-item";
+      item.textContent=emoji;
+      item.addEventListener("click",()=>{
+        if(!item.dataset.tapped){
+          item.dataset.tapped="1";
+          item.style.opacity="0.4";
+          count++;
+          feedback.textContent=""+count;
+          playSound("num_"+count);
+          if(count===n){
+            feedback.textContent=""+n+" ✅";
+            setTimeout(()=>playSound("ok_correct"),400);
+            setTimeout(nextLevel,1000);
+          }
+        }
+      });
+      tapArea.appendChild(item);
+    }
+
+    const feedback=createFeedback();
+    feedback.textContent="0";
+
+    card.appendChild(q);
+    card.appendChild(sub);
+    card.appendChild(tapArea);
+    card.appendChild(feedback);
+    gameArea.appendChild(card);
+  }
+
+  // --- GIOCO 8: DISEGNA ---
+  function renderDrawGame(cfg){
+    playSound("intro_drawGame");
+
+    const max=cfg.maxNumber;
+    let min=1;
+    if(currentDiff==="hard"){min=10;}
+    const number=Math.floor(Math.random()*(max-min+1))+min;
+
+    const card=document.createElement("div");
+    card.className="game-card";
+
+    const q=document.createElement("div");
+    q.className="game-question";
+    q.textContent="✏️ 🔢";
+
+    const sub=document.createElement("div");
+    sub.className="game-subtitle";
+    sub.textContent="";
+
+    const bigNum = document.createElement("div");
+    bigNum.className = "big-number";
+    bigNum.textContent = number;
+
+    const wrapper=document.createElement("div");
+    wrapper.className="draw-wrapper";
+
+    const canvasContainer=document.createElement("div");
+    canvasContainer.className="draw-canvas-container";
+
+    const canvas=document.createElement("canvas");
+    canvas.id="drawCanvas";
+    canvasContainer.appendChild(canvas);
+
+    const controls=document.createElement("div");
+    controls.className="draw-controls";
+
+    const btnClear=document.createElement("button");
+    btnClear.className="draw-btn danger";
+    btnClear.textContent="🧽";
+
+    const btnNew=document.createElement("button");
+    btnNew.className="draw-btn";
+    btnNew.textContent="🔁";
+
+    const btnThick=document.createElement("button");
+    btnThick.className="draw-btn alt";
+    btnThick.textContent="⬆️✏️";
+
+    controls.appendChild(btnClear);
+    controls.appendChild(btnNew);
+    controls.appendChild(btnThick);
+
+    wrapper.appendChild(canvasContainer);
+    wrapper.appendChild(controls);
+
+    const feedback=createFeedback();
+    feedback.textContent="🎨";
+
+    card.appendChild(q);
+    card.appendChild(sub);
+    card.appendChild(bigNum);
+    card.appendChild(wrapper);
+    card.appendChild(feedback);
+    gameArea.appendChild(card);
+
+    function resizeCanvas(){
+      const rect=canvasContainer.getBoundingClientRect();
+      const ratio=window.devicePixelRatio||1;
+      canvas.width=rect.width*ratio;
+      canvas.height=rect.height*ratio;
+      const ctx=canvas.getContext("2d");
+      ctx.setTransform(ratio,0,0,ratio,0,0);
+      ctx.fillStyle="#020617";
+      ctx.fillRect(0,0,rect.width,rect.height);
+      ctx.strokeStyle="#f9fafb";
+      ctx.lineWidth=brushSize;
+      ctx.lineCap="round";
+      return ctx;
+    }
+
+    let brushSize=4;
+    let ctx=resizeCanvas();
+
+    let drawing=false;
+    let lastX=0,lastY=0;
+
+    function getPos(e){
+      const rect=canvas.getBoundingClientRect();
+      let clientX,clientY;
+      if(e.touches&&e.touches.length>0){
+        clientX=e.touches[0].clientX;
+        clientY=e.touches[0].clientY;
+      }else{
+        clientX=e.clientX;
+        clientY=e.clientY;
+      }
+      return {x:clientX-rect.left,y:clientY-rect.top};
+    }
+
+    function startDraw(e){
+      e.preventDefault();
+      drawing=true;
+      const pos=getPos(e);
+      lastX=pos.x;
+      lastY=pos.y;
+    }
+    function draw(e){
+      if(!drawing)return;
+      e.preventDefault();
+      const pos=getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(lastX,lastY);
+      ctx.lineTo(pos.x,pos.y);
+      ctx.stroke();
+      lastX=pos.x;
+      lastY=pos.y;
+    }
+    function endDraw(e){drawing=false;}
+
+    canvas.addEventListener("mousedown",startDraw);
+    canvas.addEventListener("mousemove",draw);
+    canvas.addEventListener("mouseup",endDraw);
+    canvas.addEventListener("mouseleave",endDraw);
+
+    canvas.addEventListener("touchstart",startDraw,{passive:false});
+    canvas.addEventListener("touchmove",draw,{passive:false});
+    canvas.addEventListener("touchend",endDraw);
+    canvas.addEventListener("touchcancel",endDraw);
+
+    window.addEventListener("resize",()=>{ctx=resizeCanvas();});
+
+    btnClear.addEventListener("click",()=>{ctx=resizeCanvas();});
+    btnNew.addEventListener("click",()=>{loadGame();});
+    btnThick.addEventListener("click",()=>{
+      if(brushSize===4){
+        brushSize=8;
+        btnThick.textContent="⬇️✏️";
+      }else{
+        brushSize=4;
+        btnThick.textContent="⬆️✏️";
+      }
+      ctx.lineWidth=brushSize;
+    });
+  }
+
+  // --- GIOCO 9: CONTA CON ME ---
+  function renderCountWithMe(cfg){
+    const target = cfg.countTo; // 10 / 20 / 30
+    const introKey = "intro_countWithMe_" + target;
+    if(audioMap[introKey]){
+      playSound(introKey);
+    }else{
+      playSound("intro_countWithMe");
+    }
+
+    let current = 0;
+
+    const card=document.createElement("div");
+    card.className="game-card";
+
+    const q=document.createElement("div");
+    q.className="game-question";
+    q.textContent="🗣️ 🔢";
+
+    const sub=document.createElement("div");
+    sub.className="game-subtitle";
+    sub.textContent="";
+
+    const display=document.createElement("div");
+    display.className="count-display";
+    display.textContent=current;
+
+    const controls=document.createElement("div");
+    controls.className="count-controls";
+
+    const btnNext=document.createElement("button");
+    btnNext.className="count-btn";
+    btnNext.textContent="▶️";
+
+    controls.appendChild(btnNext);
+
+    const feedback=createFeedback();
+    feedback.textContent="";
+
+    btnNext.addEventListener("click",()=>{
+      if(current < target){
+        current++;
+        display.textContent=current;
+        playSound("num_"+current);
+        if(current===target){
+          feedback.textContent="✅";
+          setTimeout(()=>playSound("ok_correct"),500);
+          setTimeout(nextLevel,1100);
+        }
+      }
+    });
+
+    card.appendChild(q);
+    card.appendChild(sub);
+    card.appendChild(display);
+    card.appendChild(controls);
+    card.appendChild(feedback);
+    gameArea.appendChild(card);
+  }
+
+  // init
+  (function init(){
+    const firstGame=document.querySelector(".btn-game[data-game='countObjects']");
+    const firstDiff=document.querySelector(".btn-diff[data-diff='easy']");
+    firstGame.classList.add("active");
+    firstDiff.classList.add("active");
+    currentGame="countObjects";
+    currentDiff="easy";
+    currentLevel=1;
+    updateStatus();
+    loadGame();
+  })();
+</script>
+</body>
+</html>
