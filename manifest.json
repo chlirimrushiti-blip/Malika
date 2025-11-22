@@ -1,7 +1,8 @@
 {
   "name": "MALIKA",
   "short_name": "Malika",
-  "start_url": "./index.html",
+  "id": "/malika-app-v1",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#020617",
